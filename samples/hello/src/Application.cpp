@@ -5,12 +5,26 @@
 #include <lug/Graphics/Builder/Light.hpp>
 #include <lug/Graphics/Builder/SkyBox.hpp>
 #include <lug/Graphics/Renderer.hpp>
+#include <lug/Graphics/Scene/Node.hpp>
 #include <lug/Graphics/Scene/Scene.hpp>
 #include <lug/Graphics/Vulkan/Renderer.hpp>
 #include <lug/Math/Geometry/Trigonometry.hpp>
 
 Application::Application() : lug::Core::Application::Application{{"hello", {0, 1, 0}}} {
     getRenderWindowInfo().windowInitInfo.title = "Hello";
+}
+
+void test(const lug::Graphics::Scene::Node* node, lug::Graphics::Resource::SharedPtr<lug::Graphics::Render::SkyBox> skyBox) {
+    const lug::Graphics::Scene::Node::MeshInstance* meshInstance = node->getMeshInstance();
+    if (meshInstance) {
+        for (auto& material: meshInstance->materials) {
+            material->setEnvironmentTexture(skyBox);
+        }
+    }
+
+    for (const auto& child : node->getChildren()) {
+        test(static_cast<const lug::Graphics::Scene::Node*>(child), skyBox);
+    }
 }
 
 bool Application::init(int argc, char* argv[]) {
@@ -111,12 +125,14 @@ bool Application::init(int argc, char* argv[]) {
     {
         lug::Graphics::Builder::SkyBox skyBoxBuilder(*renderer);
 
-        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::PositiveX, "textures/skybox/right.jpg");
-        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::NegativeX, "textures/skybox/left.jpg");
-        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::PositiveY, "textures/skybox/top.jpg");
-        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::NegativeY, "textures/skybox/bottom.jpg");
-        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::PositiveZ, "textures/skybox/back.jpg");
-        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::NegativeZ, "textures/skybox/front.jpg");
+        skyBoxBuilder.setMagFilter(lug::Graphics::Render::Texture::Filter::Linear);
+        skyBoxBuilder.setMinFilter(lug::Graphics::Render::Texture::Filter::Linear);
+        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::PositiveX, "textures/skybox2/posx.bmp");
+        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::NegativeX, "textures/skybox2/negx.bmp");
+        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::PositiveY, "textures/skybox2/posy.bmp");
+        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::NegativeY, "textures/skybox2/negy.bmp");
+        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::PositiveZ, "textures/skybox2/posz.bmp");
+        skyBoxBuilder.setFaceFilename(lug::Graphics::Builder::SkyBox::Face::NegativeZ, "textures/skybox2/negz.bmp");
 
         lug::Graphics::Resource::SharedPtr<lug::Graphics::Render::SkyBox> skyBox = skyBoxBuilder.build();
         if (!skyBox) {
@@ -124,7 +140,9 @@ bool Application::init(int argc, char* argv[]) {
             return false;
         }
 
-        _scene->setSkyBox(skyBox);
+        lug::Graphics::Resource::SharedPtr<lug::Graphics::Render::SkyBox> irradianceMap = skyBox->createIrradianceMap(*renderer);
+        _scene->setSkyBox(irradianceMap);
+       //test(&_scene->getRoot(), irradianceMap);
     }
 
     return true;

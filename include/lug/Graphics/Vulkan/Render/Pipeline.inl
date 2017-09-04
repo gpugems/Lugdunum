@@ -18,7 +18,10 @@ inline Pipeline::Id Pipeline::getBaseId() {
     materialPart.occlusionInfo = 0b11; // No texture
     materialPart.emissiveInfo = 0b11; // No texture
 
-    return Pipeline::Id::create(primitivePart, materialPart);
+    Pipeline::Id::IndirectLightingPart indirectLightingPart;
+    indirectLightingPart.environmentInfo = 0; // No texture
+
+    return Pipeline::Id::create(primitivePart, materialPart, indirectLightingPart);
 }
 
 inline const API::GraphicsPipeline& Pipeline::getPipelineAPI() {

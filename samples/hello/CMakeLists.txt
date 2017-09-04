@@ -40,6 +40,8 @@ set(SHADERS
     gui.vert
     skybox.vert
     skybox.frag
+    irradiance.vert
+    irradiance.frag
 )
 
 set(LUG_RESOURCES

@@ -79,6 +79,7 @@ std::vector<uint32_t> Pipeline::ShaderBuilder::buildShaderFromString(std::string
     {
         Pipeline::Id::PrimitivePart primitivePart = id.getPrimitivePart();
         Pipeline::Id::MaterialPart materialPart = id.getMaterialPart();
+        Pipeline::Id::IndirectLightingPart indirectLightingPart = id.getIndirectLightingPart();
 
         // Primitive part
         {
@@ -105,6 +106,11 @@ std::vector<uint32_t> Pipeline::ShaderBuilder::buildShaderFromString(std::string
 
             options.AddMacroDefinition("TEXTURE_EMISSIVE", materialPart.emissiveInfo != 0b11 ? "1" : "0");
             options.AddMacroDefinition("TEXTURE_EMISSIVE_UV", "inUV" + std::to_string(materialPart.emissiveInfo));
+        }
+
+        // Indirect lightning part
+        {
+            options.AddMacroDefinition("TEXTURE_ENVIRONMENT", indirectLightingPart.environmentInfo ? "1" : "0");
         }
 
         // Set location
@@ -148,6 +154,10 @@ std::vector<uint32_t> Pipeline::ShaderBuilder::buildShaderFromString(std::string
 
             if (materialPart.emissiveInfo != 0b11) {
                 options.AddMacroDefinition("TEXTURE_EMISSIVE_BINDING", std::to_string(binding++));
+            }
+
+            if (indirectLightingPart.environmentInfo) {
+                options.AddMacroDefinition("TEXTURE_ENVIRONMENT_BINDING", std::to_string(binding++));
             }
         }
     }

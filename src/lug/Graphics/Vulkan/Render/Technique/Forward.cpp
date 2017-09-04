@@ -322,7 +322,7 @@ bool Forward::render(
                         // Get the new (or old) material descriptor set
                         const DescriptorSetPool::DescriptorSet* materialTexturesDescriptorSet = _materialTexturesDescriptorSetPool->allocate(
                             pipeline->getPipelineAPI(),
-                            [&material]() {
+                            [&material, &renderQueue]() {
                                 std::vector<const ::lug::Graphics::Vulkan::Render::Texture*> textures;
 
                                 if (material.getBaseColorTexture().texture) {
@@ -345,7 +345,6 @@ bool Forward::render(
                                     textures.push_back(static_cast<const ::lug::Graphics::Vulkan::Render::Texture*>(material.getEmissiveTexture().texture.get()));
                                 }
 
-
                                 return textures;
                             }()
                         );
@@ -353,6 +352,27 @@ bool Forward::render(
                         if (!materialTexturesDescriptorSet) {
                             LUG_LOG.error("Forward::render: Can't allocate material textures descriptor set");
                             return false;
+                        }
+
+                        if (material.getEnvironmentTexture()) {
+                            Resource::SharedPtr<Render::SkyBox> skyBox = Resource::SharedPtr<Render::SkyBox>::cast(material.getEnvironmentTexture());
+
+                            static bool lol = false;
+                            if (!lol) {
+                                lol = true;
+                                Resource::SharedPtr<Render::Texture> skyBoxTexture =  Resource::SharedPtr<Render::Texture>::cast(skyBox->getTexture());
+                                VkDescriptorImageInfo imageInfo{
+                                    imageInfo.sampler = static_cast<VkSampler>(skyBoxTexture->getSampler()),
+                                    imageInfo.imageView = static_cast<VkImageView>(skyBoxTexture->getImageView()),
+                                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                };
+                                materialTexturesDescriptorSet->getDescriptorSet().updateImages(
+                                    5,
+                                    0,
+                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                    {imageInfo}
+                                );
+                            }
                         }
 
                         materialTexturesDescriptorSets.push_back(materialTexturesDescriptorSet);
@@ -371,6 +391,7 @@ bool Forward::render(
 
                         frameData.renderCmdBuffer.bindDescriptorSets(materialBind);
                     }
+
 
                     if (!primitiveSet.position || !primitiveSet.normal) {
                         LUG_LOG.warn("Forward::render: Mesh should have positions and normals data");

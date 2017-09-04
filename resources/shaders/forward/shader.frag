@@ -92,8 +92,13 @@ layout (set = 3, binding = TEXTURE_OCCLUSION_BINDING) uniform sampler2D textureO
 #if TEXTURE_EMISSIVE
 layout (set = 3, binding = TEXTURE_EMISSIVE_BINDING) uniform sampler2D textureEmissive;
 #endif
+#if TEXTURE_ENVIRONMENT
+layout (set = 3, binding = TEXTURE_ENVIRONMENT_BINDING) uniform samplerCube textureEnvironment;
+#endif
+
 
 layout (location = IN_FREE_LOCATION) in vec3 inCameraPositionWorldSpace;
+
 
 //////////////////////////////////////////////////////////////////////////////
 // BLOCK OF STATIC OUTPUTS
@@ -306,6 +311,19 @@ void main() {
     // Gamma correction
     color = pow(color, vec3(1.0 / 2.2));
 
+
+    #if TEXTURE_ENVIRONMENT
+    //outColor = vec4(1.0);
+    //outColor = vec4(hdrColor / (hdrColor + vec3(1.0)), 1.0);
+/*     vec3 reflected = reflect(-viewDirection, normalWorldSpace);
+    vec3 environmentColor = texture(textureEnvironment, reflected).rgb;
+    outColor = vec4(environmentColor, 1.0); */
+    //albedo = albedo * vec4(environmentColor, 1.0);
+    //albedo = vec4(environmentColor, 1.0);
+    //outColor = vec4(color, 1.0);
+    outColor = vec4(texture(textureEnvironment, normalWorldSpace).rgb, 1.0);
+    #else
     // Final output
     outColor = vec4(color, 1.0);
+    #endif
 }

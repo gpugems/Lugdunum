@@ -75,10 +75,29 @@ public:
             }
         };
 
+        /**
+         * @brief      Describes the indirect lighting applied on the material.
+         *             For now, it's only composed of the environment mapping
+         */
+        struct IndirectLightingPart {
+            union {
+                struct {
+                    uint32_t environmentInfo : 1;             ///< 1 texture, 0 no texture.
+                };
+
+                uint32_t value;
+            };
+
+            explicit operator uint32_t() {
+                return value;
+            }
+        };
+
         union {
             struct {
                 uint32_t primitivePart : 10;
                 uint32_t materialPart : 10;
+                uint32_t indirectLightingPart : 1;
             };
 
             uint32_t value;
@@ -118,19 +137,27 @@ public:
             return tmp;
         }
 
+        IndirectLightingPart getIndirectLightingPart() {
+            IndirectLightingPart tmp;
+            tmp.value = indirectLightingPart;
+            return tmp;
+        }
+
         /**
          * @brief      Create a pipeline id.
          *
          * @param[in]  primitivePart  The primitive part. It should be created manually beforehand.
          * @param[in]  materialPart   The material part. It should be created manually beforehand.
+         * @param[in]  IndirectLightingPart   The indirect lightning part. It should be created manually beforehand.
          *
          * @return     The created id.
          */
-        static Id create(PrimitivePart primitivePart, MaterialPart materialPart) {
+        static Id create(PrimitivePart primitivePart, MaterialPart materialPart, IndirectLightingPart indirectLightingPart) {
             Id id;
 
             id.primitivePart = static_cast<uint32_t>(primitivePart);
             id.materialPart = static_cast<uint32_t>(materialPart);
+            id.indirectLightingPart = static_cast<uint32_t>(indirectLightingPart);
 
             return id;
         };
