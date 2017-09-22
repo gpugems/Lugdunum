@@ -25,7 +25,7 @@ void Queue::addMeshInstance(Scene::Node& node) {
             Render::Mesh::PrimitiveSetData* primitiveSetData = static_cast<Render::Mesh::PrimitiveSetData*>(primitiveSet._data);
             Pipeline::Id::PrimitivePart pipelineIdPrimitivePart = primitiveSetData->pipelineIdPrimitivePart;
             Pipeline::Id::MaterialPart pipelineIdMaterialPart = material->getPipelineId();
-            Pipeline::Id::IndirectLightingPart indirectLightingPart {static_cast<uint32_t>(material->getEnvironmentTexture() ? 1 : 0)};
+            Pipeline::Id::IndirectLightingPart indirectLightingPart = {{{static_cast<uint32_t>(material->getEnvironmentTexture() ? 1 : 0)}}};
 
             pipelineId = Pipeline::Id::create(pipelineIdPrimitivePart, pipelineIdMaterialPart, indirectLightingPart);
         }

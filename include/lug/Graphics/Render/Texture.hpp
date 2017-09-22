@@ -42,11 +42,11 @@ public:
     void setWidth(uint32_t width);
     void setHeight(uint32_t height);
 
-    const Render::Texture::Filter getMagFilter() const;
-    const Render::Texture::Filter getMinFilter() const;
-    const Render::Texture::Filter getMipMapFilter() const;
-    const Render::Texture::WrappingMode getWrapS() const;
-    const Render::Texture::WrappingMode getWrapT() const;
+    Render::Texture::Filter getMagFilter() const;
+    Render::Texture::Filter getMinFilter() const;
+    Render::Texture::Filter getMipMapFilter() const;
+    Render::Texture::WrappingMode getWrapS() const;
+    Render::Texture::WrappingMode getWrapT() const;
     uint32_t getWidth() const;
     uint32_t getHeight() const;
 

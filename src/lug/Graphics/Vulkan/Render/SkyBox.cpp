@@ -41,9 +41,11 @@ void SkyBox::destroy() {
 }
 
 Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(lug::Graphics::Renderer& renderer) const {
+    constexpr uint32_t irradianceMapSize = 128;
+
     // Constructor of SkyBox is private, we can't use std::make_unique
     std::unique_ptr<Resource> resource{new Vulkan::Render::SkyBox(_name + "_irradiance_map")};
-    Vulkan::Render::SkyBox* skyBox = static_cast<Vulkan::Render::SkyBox*>(resource.get());
+    Vulkan::Render::SkyBox* irradianceMap = static_cast<Vulkan::Render::SkyBox*>(resource.get());
 
     Vulkan::Renderer& vkRenderer = static_cast<Vulkan::Renderer&>(renderer);
 
@@ -55,16 +57,16 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
     textureBuilder.setMipMapFilter(getTexture()->getMipMapFilter());
     textureBuilder.setWrapS(getTexture()->getWrapS());
     textureBuilder.setWrapT(getTexture()->getWrapT());
-    textureBuilder.addLayer(getTexture()->getWidth(), getTexture()->getHeight());
-    textureBuilder.addLayer(getTexture()->getWidth(), getTexture()->getHeight());
-    textureBuilder.addLayer(getTexture()->getWidth(), getTexture()->getHeight());
-    textureBuilder.addLayer(getTexture()->getWidth(), getTexture()->getHeight());
-    textureBuilder.addLayer(getTexture()->getWidth(), getTexture()->getHeight());
-    textureBuilder.addLayer(getTexture()->getWidth(), getTexture()->getHeight());
+    textureBuilder.addLayer(irradianceMapSize, irradianceMapSize);
+    textureBuilder.addLayer(irradianceMapSize, irradianceMapSize);
+    textureBuilder.addLayer(irradianceMapSize, irradianceMapSize);
+    textureBuilder.addLayer(irradianceMapSize, irradianceMapSize);
+    textureBuilder.addLayer(irradianceMapSize, irradianceMapSize);
+    textureBuilder.addLayer(irradianceMapSize, irradianceMapSize);
 
-    skyBox->_texture = textureBuilder.build();
-    if (!skyBox->_texture) {
-        LUG_LOG.error("Resource::SharedPtr<::lug::Graphics::Render::SkyBox>::build Can't create skyBox irradiance texture");
+    irradianceMap->_texture = textureBuilder.build();
+    if (!irradianceMap->_texture) {
+        LUG_LOG.error("Resource::SharedPtr<::lug::Graphics::Render::SkyBox>::build Can't create the irradiance map texture");
         return nullptr;
     }
 
@@ -87,14 +89,14 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
         graphicsQueue = vkRenderer.getDevice().getQueue("queue_graphics");
         if (!graphicsQueue) {
             LUG_LOG.error("Resource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't find queue with name queue_graphics");
-            return false;
+            return nullptr;
         }
 
         // Command pool
         API::Builder::CommandPool commandPoolBuilder(vkRenderer.getDevice(), *graphicsQueue->getQueueFamily());
         if (!commandPoolBuilder.build(commandPool, &result)) {
             LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create the graphics command pool: {}", result);
-            return false;
+            return nullptr;
         }
 
         // Command buffer
@@ -104,7 +106,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
         // Create the render command buffer
         if (!commandBufferBuilder.build(cmdBuffer, &result)) {
             LUG_LOG.error("Resource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create the command buffer: {}", result);
-            return false;
+            return nullptr;
         }
 
         // Descriptor pool
@@ -125,7 +127,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
             if (!descriptorPoolBuilder.build(descriptorPool, &result)) {
                 LUG_LOG.error("Resource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create the descriptor pool: {}", result);
-                return false;
+                return nullptr;
             }
         }
 
@@ -160,7 +162,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
             if (!fenceBuilder.build(fence, &result)) {
                 LUG_LOG.error("Resource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create render fence: {}", result);
-                return false;
+                return nullptr;
             }
         }
 
@@ -171,8 +173,8 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
             // Create image and add it to API::Builder::DeviceMemory
             const VkExtent3D extent{
-                /* extent.width     */ getTexture()->getWidth(),
-                /* extent.height    */ getTexture()->getHeight(),
+                /* extent.width     */ irradianceMapSize,
+                /* extent.height    */ irradianceMapSize,
                 /* extent.depth     */ 1
             };
 
@@ -188,12 +190,12 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
                 if (!imageBuilder.build(depthImage, &result)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create depth buffer image: {}", result);
-                    return false;
+                    return nullptr;
                 }
 
                 if (!deviceMemoryBuilder.addImage(depthImage)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't add image to device memory");
-                    return false;
+                    return nullptr;
                 }
             }
 
@@ -209,12 +211,12 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
                 if (!imageBuilder.build(offscreenImage, &result)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create depth buffer image: {}", result);
-                    return false;
+                    return nullptr;
                 }
 
                 if (!deviceMemoryBuilder.addImage(offscreenImage)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't add image to device memory");
-                    return false;
+                    return nullptr;
                 }
             }
 
@@ -222,7 +224,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
             {
                 if (!deviceMemoryBuilder.build(imagesMemory, &result)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create device memory: {}", result);
-                    return false;
+                    return nullptr;
                 }
             }
 
@@ -235,7 +237,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
                 if (!imageViewBuilder.build(depthImageView, &result)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create depth buffer image view: {}", result);
-                    return false;
+                    return nullptr;
                 }
             }
 
@@ -248,7 +250,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
                 if (!imageViewBuilder.build(offscreenImageView, &result)) {
                     LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't create depth buffer image view: {}", result);
-                    return false;
+                    return nullptr;
                 }
             }
         }
@@ -263,12 +265,12 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
             framebufferBuilder.setRenderPass(renderPass);
             framebufferBuilder.addAttachment(&offscreenImageView);
             framebufferBuilder.addAttachment(&depthImageView);
-            framebufferBuilder.setWidth(getTexture()->getWidth());
-            framebufferBuilder.setHeight(getTexture()->getHeight());
+            framebufferBuilder.setWidth(irradianceMapSize);
+            framebufferBuilder.setHeight(irradianceMapSize);
 
             if (!framebufferBuilder.build(framebuffer, &result)) {
                 LUG_LOG.error("Forward::initFramebuffers: Can't create framebuffer: {}", result);
-                return false;
+                return nullptr;
             }
         }
     }
@@ -276,7 +278,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
     // Generate the irradiance cube map
     {
         if (!cmdBuffer.begin()) {
-            return false;
+            return nullptr;
         }
 
         cmdBuffer.bindPipeline(SkyBox::_irradianceMapPipeline);
@@ -308,7 +310,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
             /* cmdDrawIndexed.instanceCount */ 1,
         };
 
-        Math::Mat4x4f projection = Math::Geometry::perspective(Math::halfPi<float>(), 1.0f, 0.1f, (float)getTexture()->getWidth());
+        Math::Mat4x4f projection = Math::Geometry::perspective(Math::halfPi<float>(), 1.0f, 0.1f, static_cast<float>(irradianceMapSize));
         std::vector<Math::Mat4x4f> matrices = {
             Math::Geometry::lookAt<float>({0.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}),
             Math::Geometry::lookAt<float>({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}),
@@ -320,39 +322,29 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
 
         // Change offscreen image layout to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL for render
         {
-            API::CommandBuffer::CmdPipelineBarrier::ImageMemoryBarrier imageMemoryBarrier;
-            imageMemoryBarrier.image = &offscreenImage;
-            imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            API::CommandBuffer::CmdPipelineBarrier cmdPipelineBarrier;
-            cmdPipelineBarrier.imageMemoryBarriers.push_back(std::move(imageMemoryBarrier));
-            cmdBuffer.pipelineBarrier(cmdPipelineBarrier);
+            API::CommandBuffer::CmdPipelineBarrier pipelineBarrier;
+            pipelineBarrier.imageMemoryBarriers.resize(1);
+            pipelineBarrier.imageMemoryBarriers[0].srcAccessMask = 0;
+            pipelineBarrier.imageMemoryBarriers[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            pipelineBarrier.imageMemoryBarriers[0].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            pipelineBarrier.imageMemoryBarriers[0].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            pipelineBarrier.imageMemoryBarriers[0].image = &offscreenImage;
+
+            cmdBuffer.pipelineBarrier(pipelineBarrier);
         }
 
-
-        // Change skybox layout to VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL for read
+        // Change irradiance layout to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL for copy
         {
-            API::CommandBuffer::CmdPipelineBarrier::ImageMemoryBarrier imageMemoryBarrier;
-            imageMemoryBarrier.image = &Resource::SharedPtr<Render::Texture>::cast(getTexture())->getImage();
-            imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageMemoryBarrier.subresourceRange.layerCount = 6;
-            API::CommandBuffer::CmdPipelineBarrier cmdPipelineBarrier;
-            cmdPipelineBarrier.imageMemoryBarriers.push_back(std::move(imageMemoryBarrier));
-            cmdBuffer.pipelineBarrier(
-                cmdPipelineBarrier
-            );
-        }
+            API::CommandBuffer::CmdPipelineBarrier pipelineBarrier;
+            pipelineBarrier.imageMemoryBarriers.resize(1);
+            pipelineBarrier.imageMemoryBarriers[0].srcAccessMask = 0;
+            pipelineBarrier.imageMemoryBarriers[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            pipelineBarrier.imageMemoryBarriers[0].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            pipelineBarrier.imageMemoryBarriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            pipelineBarrier.imageMemoryBarriers[0].image = &Resource::SharedPtr<Render::Texture>::cast(irradianceMap->_texture)->getImage();
+            pipelineBarrier.imageMemoryBarriers[0].subresourceRange.layerCount = 6;
 
-        // Change skybox layout to VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL for copy
-        {
-            API::CommandBuffer::CmdPipelineBarrier::ImageMemoryBarrier imageMemoryBarrier;
-            imageMemoryBarrier.image = &Resource::SharedPtr<Render::Texture>::cast(skyBox->_texture)->getImage();
-            imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            imageMemoryBarrier.subresourceRange.layerCount = 6;
-            API::CommandBuffer::CmdPipelineBarrier cmdPipelineBarrier;
-            cmdPipelineBarrier.imageMemoryBarriers.push_back(std::move(imageMemoryBarrier));
-            cmdBuffer.pipelineBarrier(
-                cmdPipelineBarrier
-            );
+            cmdBuffer.pipelineBarrier(pipelineBarrier);
         }
 
 
@@ -369,7 +361,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
                 };
 
                 beginRenderPass.renderArea.offset = {0, 0};
-                beginRenderPass.renderArea.extent = {getTexture()->getWidth(), getTexture()->getHeight()};
+                beginRenderPass.renderArea.extent = {irradianceMapSize, irradianceMapSize};
 
                 beginRenderPass.clearValues.resize(2);
                 beginRenderPass.clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
@@ -380,8 +372,8 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
                 const VkViewport vkViewport{
                     /* vkViewport.x         */ 0.0f,
                     /* vkViewport.y         */ 0.0f,
-                    /* vkViewport.width     */ static_cast<float>(getTexture()->getWidth()),
-                    /* vkViewport.height    */ static_cast<float>(getTexture()->getHeight()),
+                    /* vkViewport.width     */ static_cast<float>(irradianceMapSize),
+                    /* vkViewport.height    */ static_cast<float>(irradianceMapSize),
                     /* vkViewport.minDepth  */ 0.0f,
                     /* vkViewport.maxDepth  */ 1.0f,
                 };
@@ -392,8 +384,8 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
                         0
                     },
                     /* scissor.extent */ {
-                       static_cast<uint32_t>(getTexture()->getWidth()),
-                       static_cast<uint32_t>(getTexture()->getHeight())
+                       static_cast<uint32_t>(irradianceMapSize),
+                       static_cast<uint32_t>(irradianceMapSize)
                     }
                 };
 
@@ -435,14 +427,14 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
             copyRegion.dstSubresource.layerCount = 1;
             copyRegion.dstOffset = { 0, 0, 0 };
 
-            copyRegion.extent.width = getTexture()->getWidth();
-            copyRegion.extent.height = getTexture()->getHeight();
+            copyRegion.extent.width = irradianceMapSize;
+            copyRegion.extent.height = irradianceMapSize;
             copyRegion.extent.depth = 1;
 
             const API::CommandBuffer::CmdCopyImage cmdCopyImage{
                 /* cmdCopyImage.srcImage      */ offscreenImage,
                 /* cmdCopyImage.srcImageLayout  */ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                /* cmdCopyImage.dstImage      */ Resource::SharedPtr<Render::Texture>::cast(skyBox->_texture)->getImage(),
+                /* cmdCopyImage.dstImage      */ Resource::SharedPtr<Render::Texture>::cast(irradianceMap->_texture)->getImage(),
                 /* cmdCopyImage.dsrImageLayout        */ VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 /* cmdCopyImage.regions      */ { copyRegion }
             };
@@ -462,7 +454,7 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
         }
 
         if (!cmdBuffer.end()) {
-            return false;
+            return nullptr;
         }
     }
 
@@ -474,12 +466,12 @@ Resource::SharedPtr<lug::Graphics::Render::SkyBox> SkyBox::createIrradianceMap(l
         static_cast<VkFence>(fence)
     )) {
         LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap: Can't submit work to graphics queue: {}", result);
-        return false;
+        return nullptr;
     }
 
     if (!fence.wait() || !graphicsQueue->waitIdle()) {
         LUG_LOG.error("Forward::iniResource::SharedPtr<::lug::Graphics::Render::SkyBox>::createIrradianceMap:: Can't wait fence");
-        return false;
+        return nullptr;
     }
 
     cmdBuffer.destroy();
